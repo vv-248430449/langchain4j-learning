@@ -1,5 +1,6 @@
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.SystemMessage;
@@ -53,6 +54,8 @@ public class TestAgent {
 
     ChatLanguageModel deepseek;
 
+    ChatLanguageModel deepseek_r1;
+
     @BeforeEach
     public void init() {
         qwen = QwenChatModel
@@ -61,24 +64,33 @@ public class TestAgent {
                 .modelName("qwen-max")
                 .build();
 
-        deepseek = OpenAiChatModel
+//        deepseek = OpenAiChatModel
+//                .builder()
+//                .baseUrl("https://api.deepseek.com")
+//                .apiKey(System.getenv("DEEP_SEEK_KEY"))
+//                .modelName("deepseek-reasoner")
+//                .build();
+
+        deepseek_r1 = OllamaChatModel
                 .builder()
-                .baseUrl("https://api.deepseek.com")
-                .apiKey(System.getenv("DEEP_SEEK_KEY"))
-                .modelName("deepseek-reasoner")
+                .baseUrl("http://localhost:11434")
+                //.apiKey(System.getenv("ALI_AI_KEY"))
+                .modelName("deepseek-r1:1.5b")
                 .build();
     }
 
 
     @Test
     void test() {
-        GreetingExpert greetingExpert = AiServices.create(GreetingExpert.class, deepseek);
+//        GreetingExpert greetingExpert = AiServices.create(GreetingExpert.class, deepseek);
+        //因为没有deepseek apiKey ，所以用本地的 ollama 模型
+        GreetingExpert greetingExpert = AiServices.create(GreetingExpert.class, deepseek_r1);
 
         ChatBot chatBot = AiServices.create(ChatBot.class, qwen);
 
         MilesOfSmiles milesOfSmiles = new MilesOfSmiles(greetingExpert, chatBot);
 
-        String greeting = milesOfSmiles.handle("我要退票！");
+        String greeting = milesOfSmiles.handle("我要游泳！");
         System.out.println(greeting);
 
 

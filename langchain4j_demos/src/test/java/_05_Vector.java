@@ -71,8 +71,8 @@ public class _05_Vector {
         // 构建查询条件
         EmbeddingSearchRequest build = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding)
-                .maxResults(1)
-                .minScore(0.8)
+//                .maxResults(1)
+//                .minScore(0.8)
                 .build();
 
         // 查询

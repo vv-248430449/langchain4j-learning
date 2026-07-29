@@ -1,4 +1,3 @@
-import com.alibaba.dashscope.assistants.Assistant;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.data.document.Document;
@@ -6,18 +5,13 @@ import dev.langchain4j.data.document.loader.ClassPathDocumentLoader;
 import dev.langchain4j.data.document.parser.TextDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentByCharacterSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
-import dev.langchain4j.data.document.splitter.DocumentBySentenceSplitter;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.message.CustomMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
@@ -53,14 +47,14 @@ public class ELPTest {
 
         List<TextSegment> segments = splitter.split(document);
 
-        System.out.println(segments);
+        System.out.println("segments----------\n"+segments+"\n");
 
         QwenEmbeddingModel  embeddingModel= QwenEmbeddingModel.builder()
                 .apiKey(System.getenv("ALI_AI_KEY"))
                 .build();
         // 向量化
         List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-        System.out.println(embeddings);
+        System.out.println("embeddings----------\n"+embeddings+"\n");
 
         InMemoryEmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
         embeddingStore.addAll(embeddings,segments);
@@ -71,17 +65,19 @@ public class ELPTest {
                 .queryEmbedding(embed.content())
                 .maxResults(1)
                 .build();
-      /*  // 查询
+        // 查询
+        System.out.println("// 查询 start------------------------");
         EmbeddingSearchResult<TextSegment> results = embeddingStore.search(build);
         for (EmbeddingMatch<TextSegment> match : results.matches()) {
             System.out.println(match.embedded().text() + ",分数为：" + match.score());
 
-        }*/
+        }
+        System.out.println("// 查询 end------------------------\n");
 
 
 
         /*---------------------检索增强阶段---------------------------*/
-
+        System.out.println("检索增强阶段 start------------------------");
         ChatLanguageModel model = QwenChatModel
                 .builder()
                 .apiKey(System.getenv("ALI_AI_KEY"))
@@ -101,6 +97,7 @@ public class ELPTest {
                 .build();
 
         System.out.println(xushuAI.chat("退费费用"));
+        System.out.println("检索增强阶段 end------------------------");
 
 
     }
