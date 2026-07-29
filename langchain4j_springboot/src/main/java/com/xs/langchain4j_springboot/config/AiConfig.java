@@ -99,9 +99,8 @@ public class AiConfig {
 
     @Bean
     public AssistantUnique assistantUniqueStore(ChatLanguageModel qwenChatModel,
-                                                StreamingChatLanguageModel qwenStreamingChatModel) {
-
-        PersistentChatMemoryStore store = new PersistentChatMemoryStore();
+                                                StreamingChatLanguageModel qwenStreamingChatModel,
+                                                PersistentChatMemoryStore store) {
 
         ChatMemoryProvider chatMemoryProvider = memoryId -> MessageWindowChatMemory.builder()
                 .id(memoryId)
@@ -109,11 +108,10 @@ public class AiConfig {
                 .chatMemoryStore(store)
                 .build();
 
-        AssistantUnique assistant = AiServices.builder(AssistantUnique.class)
+        return AiServices.builder(AssistantUnique.class)
                 .chatLanguageModel(qwenChatModel)
                 .streamingChatLanguageModel(qwenStreamingChatModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .build();
-        return assistant;
     }
 }

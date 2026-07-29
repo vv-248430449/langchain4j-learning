@@ -17,8 +17,11 @@ public class _05_Vector {
                 .build();
         // 文本向量化
         Response<Embedding> embed = embeddingModel.embed("你好，我叫徐庶");
-        System.out.println(embed.content().toString());
+        Response<Embedding> embed1 = embeddingModel.embed("你好，我叫徐庶爸爸");
+        System.out.println(embed.content());
 		System.out.println(embed.content().vector().length);
+        System.out.println(embed1.content());
+		System.out.println(embed1.content().vector().length);
         
     }
 

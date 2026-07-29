@@ -8,6 +8,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.service.TokenStream;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,16 +41,19 @@ public class ChatController {
                 @Override
                 public void onPartialResponse(String partialResponse) {
                     fluxSink.next(partialResponse);
+//                    System.out.println(partialResponse);
                 }
 
                 @Override
                 public void onCompleteResponse(ChatResponse completeResponse) {
                     fluxSink.complete();
+//                    System.out.println(completeResponse);
                 }
 
                 @Override
                 public void onError(Throwable error) {
-                    fluxSink.error(error);
+//                    error.printStackTrace();
+//                    fluxSink.error(error);
                 }
             });
 
@@ -86,5 +90,14 @@ public class ChatController {
     @RequestMapping(value = "/memoryId_chat")
     public String memoryChat(@RequestParam(defaultValue="我是谁") String message, Integer userId) {
         return assistantUnique.chat(userId,message);
+    }
+
+    @Autowired
+    @Qualifier("assistantUniqueStore")
+    AiConfig.AssistantUnique assistantUniqueStore;
+
+    @RequestMapping(value = "/memoryId_chat_store")
+    public String memoryIdChatStore(@RequestParam(defaultValue="我是谁") String message, Integer userId) {
+        return assistantUniqueStore.chat(userId, message);
     }
 }
