@@ -150,7 +150,6 @@ public class RagComparisonConfig {
 
     @Bean
     @Qualifier("legalDocsStore")
-    @ConditionalOnProperty(name = "rag.strategy", havingValue = "isolated", matchIfMissing = true)
     public EmbeddingStore legalDocsStore() {
         return QdrantEmbeddingStore.builder()
                 .host(host).port(grpcPort).collectionName(legalCollection).build();
@@ -158,14 +157,12 @@ public class RagComparisonConfig {
 
     @Bean
     @Qualifier("productDocsStore")
-    @ConditionalOnProperty(name = "rag.strategy", havingValue = "isolated", matchIfMissing = true)
     public EmbeddingStore productDocsStore() {
         return QdrantEmbeddingStore.builder()
                 .host(host).port(grpcPort).collectionName(productCollection).build();
     }
 
     @Bean
-    @ConditionalOnProperty(name = "rag.strategy", havingValue = "isolated", matchIfMissing = true)
     public CommandLineRunner setupIsolated(EmbeddingModel em,
                                            @Qualifier("legalDocsStore") EmbeddingStore legalStore,
                                            @Qualifier("productDocsStore") EmbeddingStore productStore,
@@ -203,14 +200,12 @@ public class RagComparisonConfig {
 
     @Bean
     @Qualifier("sharedStore")
-    @ConditionalOnProperty(name = "rag.strategy", havingValue = "shared")
     public EmbeddingStore sharedStore() {
         return QdrantEmbeddingStore.builder()
                 .host(host).port(grpcPort).collectionName(sharedCollection).build();
     }
 
     @Bean
-    @ConditionalOnProperty(name = "rag.strategy", havingValue = "shared")
     public CommandLineRunner setupShared(EmbeddingModel em,
                                          @Qualifier("sharedStore") EmbeddingStore shared,
                                          QwenEmbeddingModel model) {
