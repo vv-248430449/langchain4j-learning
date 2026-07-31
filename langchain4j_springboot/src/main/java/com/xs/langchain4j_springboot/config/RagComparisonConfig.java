@@ -80,8 +80,9 @@ public class RagComparisonConfig {
         return dimension > 0 ? dimension : em.embed("probe-text").content().dimension();
     }
 
-    /** 通过 REST(6333) 确保 collection 存在：不存在则按 Cosine + 当前维度自动创建。 */
-    private void ensureCollection(String name, int dim) {
+    /** 确保 collection 存在并清空旧数据：不存在则按 Cosine+当前维度创建；
+     *  已存在则通过 delete-points 清空（避免 Windows 上 DELETE collection 偶发文件锁 500）。 */
+    private void recreateCollection(String name, int dim) {
         String url = String.format("http://%s:%d/collections/%s", host, restPort, name);
         HttpClient http = HttpClient.newHttpClient();
         try {
@@ -89,13 +90,24 @@ public class RagComparisonConfig {
                     HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
                     HttpResponse.BodyHandlers.ofString());
             if (get.statusCode() == 200) {
-                log.info("[RAG] collection '{}' 已存在，跳过创建。", name);
+                // 已存在：清空所有 points 而非删 collection（Windows 上 DELETE collection 偶发 os error 5）
+                log.info("[RAG] collection '{}' 已存在，清空旧数据。", name);
+                try {
+                    http.send(HttpRequest.newBuilder()
+                                    .uri(URI.create(url + "/points/delete?wait=true"))
+                                    .header("Content-Type", "application/json")
+                                    .POST(HttpRequest.BodyPublishers.ofString("{\"filter\":{}}")).build(),
+                            HttpResponse.BodyHandlers.ofString());
+                } catch (Exception ignored) {
+                    // 清空失败也不致命，新数据会覆盖旧 point id（Qdrant upsert 语义）
+                }
                 return;
             }
         } catch (Exception e) {
             throw new IllegalStateException(
                     "[RAG] 无法连接 Qdrant REST(" + host + ":" + restPort + ")，请先启动 Qdrant。原因: " + e.getMessage(), e);
         }
+        // 不存在 → 创建
         String body = String.format("{\"vectors\":{\"size\":%d,\"distance\":\"Cosine\"}}", dim);
         try {
             HttpResponse<String> put = http.send(
@@ -113,12 +125,17 @@ public class RagComparisonConfig {
         }
     }
 
-    /** 把某个文档灌库，并为每条 segment 打上 source 标签（共享模式靠它过滤）。 */
+    /** 把某个文档灌库，并为每条 segment 打上 source 标签（共享模式靠它过滤）。
+     *  切分后强制覆写 index 为全局唯一序号，避免 overlap 导致同一行被切成
+     *  多个 segment 共享同一个 index，检索时看起来像"重复命中"。 */
     private void ingest(EmbeddingStore store, QwenEmbeddingModel em, String classPath, String source) {
         Document doc = ClassPathDocumentLoader.loadDocument(classPath, new TextDocumentParser());
         doc.metadata().put("source", source);
         DocumentByLineSplitter splitter = new DocumentByLineSplitter(150, 30);
         List<TextSegment> segments = splitter.split(doc);
+        for (int i = 0; i < segments.size(); i++) {
+            segments.get(i).metadata().put("index", i);
+        }
         List<Embedding> embeddings = em.embedAll(segments).content();
         store.addAll(embeddings, segments);
         log.info("[RAG] 已灌库 {} 条 (source='{}')。", segments.size(), source);
@@ -169,8 +186,8 @@ public class RagComparisonConfig {
                                            QwenEmbeddingModel model) {
         return args -> {
             int dim = detectDim(em);
-            ensureCollection(legalCollection, dim);
-            ensureCollection(productCollection, dim);
+            recreateCollection(legalCollection, dim);
+            recreateCollection(productCollection, dim);
             ingest(legalStore, model, "rag/legal.txt", "legal");
             ingest(productStore, model, "rag/product.txt", "product");
         };
@@ -211,7 +228,7 @@ public class RagComparisonConfig {
                                          QwenEmbeddingModel model) {
         return args -> {
             int dim = detectDim(em);
-            ensureCollection(sharedCollection, dim);
+            recreateCollection(sharedCollection, dim);
             // 两份文档灌进同一个 collection，靠 source 字段区分业务
             ingest(shared, model, "rag/legal.txt", "legal");
             ingest(shared, model, "rag/product.txt", "product");

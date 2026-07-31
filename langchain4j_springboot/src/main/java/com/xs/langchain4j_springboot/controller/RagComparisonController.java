@@ -86,13 +86,14 @@ public class RagComparisonController {
      */
     @RequestMapping("/search")
     public SearchResponse search(@RequestParam String q,
-                                 @RequestParam(defaultValue = "legal") String source) {
+                                 @RequestParam(defaultValue = "legal") String source,
+                                 @RequestParam(defaultValue = "20") int limit) {
         float[] vector = embeddingModel.embed(q).content().vector();
 
         String isolatedCol = "legal".equalsIgnoreCase(source) ? legalCollection : productCollection;
-        List<Hit> isolated = rawSearch(isolatedCol, vector, null);
-        List<Hit> sharedFiltered = rawSearch(sharedCollection, vector, filterFor(source));
-        List<Hit> sharedUnfiltered = rawSearch(sharedCollection, vector, null);
+        List<Hit> isolated = rawSearch(isolatedCol, vector, null, limit);
+        List<Hit> sharedFiltered = rawSearch(sharedCollection, vector, filterFor(source), limit);
+        List<Hit> sharedUnfiltered = rawSearch(sharedCollection, vector, null, limit);
 
         return new SearchResponse(q, source, isolated, sharedFiltered, sharedUnfiltered);
     }
@@ -105,7 +106,7 @@ public class RagComparisonController {
     }
 
     /** 对指定 collection 做向量最近邻搜索（filterJson 为 null 表示不过滤），返回命中片段 + score。 */
-    private List<Hit> rawSearch(String collection, float[] vector, String filterJson) {
+    private List<Hit> rawSearch(String collection, float[] vector, String filterJson, int limit) {
         List<Hit> hits = new ArrayList<>();
         try {
             ObjectNode body = mapper.createObjectNode();
@@ -113,7 +114,7 @@ public class RagComparisonController {
             for (float f : vector) {
                 vec.add(f);
             }
-            body.put("limit", 5);
+            body.put("limit", limit);
             body.put("with_payload", true);
             body.put("with_vector", false);
             if (filterJson != null && !filterJson.isBlank()) {
