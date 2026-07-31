@@ -241,3 +241,22 @@ public class RagComparisonConfig {
         return buildAssistant(chat, stream, store, em, filter);
     }
 }
+/**
+ ```
+ feat: 去掉 RagComparisonConfig 中 store/灌库 Runner 的 @ConditionalOnProperty
+
+ 原因
+ 原先 legalDocsStore / productDocsStore / sharedStore 及 setupIsolated / setupShared
+ 均按 rag.strategy 互斥创建，导致非当前策略的 collection 根本不存在，/rag/search 端点
+ 无法同时对比两种拓扑的召回质量。
+
+ 改动
+ 去掉上述 5 处 @ConditionalOnProperty，使三个 collection 启动时全部创建并灌库。
+ 助手 Bean（legalAssistant / productAssistant）仍按 rag.strategy 互斥切换，保持不变。
+
+ 对现有业务的影响
+ 无。新增的 EmbeddingStore 全部标注 @Qualifier，AiConfig 中无注解的 embeddingStore
+ 注入不受干扰，启动类灌库入口同样不受干扰。仅启动时多约 20+ 条 embedding API 调用和
+ 少量 Qdrant 存储开销。
+ ```
+ */
